@@ -29,7 +29,7 @@ async function doSearch(q: string) {
 	error = false;
 	try {
 		const pf = await loadPagefind();
-		const search = await pf.search(q.trim());
+		const search = await pf.search(q.trim(), { baseUrl: "/notes" });
 		const items = await Promise.all(
 			search.results.slice(0, 8).map(async (r: any) => {
 				const d = await r.data();

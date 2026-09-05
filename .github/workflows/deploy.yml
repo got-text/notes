@@ -32,7 +32,7 @@ jobs:
         run: npm run build
 
       - name: Build search index (Pagefind)
-        run: npx pagefind --site dist --base-url /notes
+        run: npx pagefind --site dist
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
