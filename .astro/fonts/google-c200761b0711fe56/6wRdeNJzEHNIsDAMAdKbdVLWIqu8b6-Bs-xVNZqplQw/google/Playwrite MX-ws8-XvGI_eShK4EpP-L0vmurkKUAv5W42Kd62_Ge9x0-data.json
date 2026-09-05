@@ -1,0 +1,14 @@
+{
+	"expires": 1789221957962,
+	"version": "0.7.5",
+	"data": [
+		{
+			"style": "normal",
+			"weight": 100,
+			"meta": { "priority": 0, "subset": "fallback" },
+			"src": [
+				{ "url": "https://fonts.gstatic.com/s/playwritemx/v13/6xK9dSNbKtCe7KfhXg7RYSwyQ-oO7xNblyJr9wnc5xMfXDWWBu8.woff2", "format": "woff2" }
+			]
+		}
+	]
+}
