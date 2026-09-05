@@ -4,7 +4,9 @@
 dist/
 
 # generated types
-.astro/
+.astro/*
+!.astro/fonts/
+!.astro/fonts/*
 .vscode/count
 /worker-configuration.d.ts
 
