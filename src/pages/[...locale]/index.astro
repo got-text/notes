@@ -74,6 +74,9 @@ const latest = items.sort((a, b) => b.data.timestamp.getTime() - a.data.timestam
 const preface = prefaces[0];
 // Render preface content if available, otherwise use empty object
 const { Content } = preface ? await render(preface) : ({} as any);
+
+// 片羽：最新 5 条随笔（保留换行的原始文本）
+const recentJottings = jottings.sort((a, b) => b.data.timestamp.getTime() - a.data.timestamp.getTime()).slice(0, 5);
 ---
 
 <Base title={t("navigation.home")} {locale}>
@@ -92,6 +95,33 @@ const { Content } = preface ? await render(preface) : ({} as any);
 					<a href={getRelativeLocaleUrl(locale, "/preface")} class="self-end my-2 text-sm text-secondary">
 						—— {Time.toLocaleDateString(preface.data.timestamp, locale)}
 					</a>
+				</section>
+			)
+		}
+
+		{
+			recentJottings.length > 0 && (
+				<section class="flex flex-col gap-4">
+					{/* 标题：✦ 片羽 ────────（四芒星 + 延伸横线，兼作与序文的分隔） */}
+					<h4 class="flex items-center gap-2 text-lg font-bold">
+						<svg viewBox="0 0 128 128" class="w-4 h-4 text-secondary" aria-hidden="true">
+							<path d="M64 18 L75 53 L110 64 L75 75 L64 110 L53 75 L18 64 L53 53 Z" fill="currentColor" />
+						</svg>
+						片羽
+						<span class="grow border-t border-weak"></span>
+					</h4>
+
+					{recentJottings.map(jotting => (
+						<article class="flex flex-col gap-1 border-b border-dashed border-b-weak pb-2">
+							{/* 原始文本 + 保留换行（whitespace-pre-line），像微博正文 */}
+							<div class="whitespace-pre-line text-[0.95rem] leading-relaxed">{jotting.body}</div>
+							{/* 时间样式与序文一致：—— 日期（签名式） */}
+							<time datetime={jotting.data.timestamp.toISOString()} class="self-end text-sm text-secondary">
+								—— {Time.toLocaleDateString(jotting.data.timestamp, locale)}
+							</time>
+						</article>
+					))}
+					<a href={getRelativeLocaleUrl(locale, "/jotting")} class="text-sm text-secondary self-end">更多随笔 →</a>
 				</section>
 			)
 		}

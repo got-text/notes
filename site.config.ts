@@ -1,22 +1,22 @@
 import siteConfig from "./src/lib/config";
 
 const config = siteConfig({
-	title: "ThoughtLite",
-	prologue: "If you need a website\nthat loads fast and has great SEO, then Astro is for you.",
+	title: "拾光——光阴似幻|赤心犹在",
+	prologue: "听风雪喧嚷，看流星在飞翔。我心向我呼唤，去动荡的远方…………",
 	author: {
-		name: "Your Name",
-		email: "hi@your.mail",
-		link: "https://your.website"
+		name: ".Gt邱炎",
+		email: "||||||||||||||||",
+		link: "||||||||||||||||"
 	},
-	description: "A modern Astro theme focused on content creation.",
+	description: "计算机 · PWN · Re —— 在时光中拾取技术的光",
 	copyright: {
 		type: "CC BY-NC-ND 4.0",
-		year: "2025"
+		year: "2026"
 	},
-	timezone: "UTC",
+	timezone: "Asia/Shanghai",
 	i18n: {
-		locales: ["en", "zh-cn", "ja"],
-		defaultLocale: "en"
+		locales: ["zh-cn"],
+		defaultLocale: "zh-cn"
 	},
 	pagination: {
 		note: 10,

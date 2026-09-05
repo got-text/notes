@@ -56,39 +56,124 @@ const series = note.data.series
 	: undefined;
 
 const t = i18nit(locale);
+
+// 阅读时长估算：中文约每分钟 400 字
+const readingMinutes = Math.max(1, Math.ceil((frontmatter.words || 0) / 400));
+
+// 最近更新：最新 3 篇文记（排除当前文章）
+const recentNotes = (await getCollection("note", n => !n.data.draft && n.id !== note.id))
+	.sort((a, b) => b.data.timestamp.getTime() - a.data.timestamp.getTime())
+	.slice(0, 3);
 ---
 
 <Base title={note.data.title} {locale} description={note.data.description} article={{ timestamp: note.data.timestamp, section: note.data.series, tags: note.data.tags }}>
-	<main class="flex flex-col gap-6">
-		<header class="flex flex-col gap-4">
-			<h1 class="select-text">{note.data.title}</h1>
-			<div class="flex flex-col gap-3 sm:flex-row *:flex *:items-center *:gap-1 *:text-[0.875rem] *:text-secondary">
-				<time datetime={note.data.timestamp.toISOString()}><Icon name="lucide--calendar" />{Time.toString(note.data.timestamp)}</time>
-				{
-					note.data.series && (
-						<span>
-							<Icon name="lucide--layers" />
-							{note.data.series}
-						</span>
-					)
-				}
-				{
-					!!note.data.tags?.length && (
-						<span>
-							<Icon name="lucide--hash" />
-							{note.data.tags?.join("; ")}
-						</span>
-					)
-				}
-				<span><Icon name="lucide--pilcrow" />{t("read.words", { count: frontmatter.words })}</span>
-			</div>
-			<hr class="border-b border-weak" />
-		</header>
-
+	<main class="flex flex-col">
 		<Sensitive {locale} back={getRelativeLocaleUrl(locale, "/note")} sensitive={note.data.sensitive} client:load>
 			<div class="contents">
-				<div class="flex gap-5">
-					<section id="markdown-content" class="markdown"><Content /></section>
+				{/* 标准三栏：左栏 sticky | 正文列（标题+正文） | 右栏目录 sticky */}
+				<div class="flex gap-6 items-start">
+					<aside class="hidden sm:flex flex-col gap-5 w-52 shrink-0 sm:sticky top-16">
+						{/* 阅读进度条 */}
+						<div class="flex items-center gap-2 text-xs text-secondary">
+							<div class="grow h-1 bg-weak rounded-full overflow-hidden">
+								<div id="reading-progress" class="h-full bg-primary rounded-full" style="width: 0%"></div>
+							</div>
+							<span id="reading-percent">0%</span>
+						</div>
+
+						<section class="flex flex-col gap-2 text-sm text-secondary">
+							<time datetime={note.data.timestamp.toISOString()} class="inline-flex items-center gap-1">
+								<Icon name="lucide--calendar" />
+								{Time.toLocaleDateString(note.data.timestamp, locale)}
+							</time>
+							<span class="inline-flex items-center gap-1">
+								<Icon name="lucide--pilcrow" />
+								{t("read.words", { count: frontmatter.words })} · 约 {readingMinutes} 分钟
+							</span>
+							{
+								note.data.series && (
+									<span class="inline-flex items-center gap-1">
+										<Icon name="lucide--layers" />
+										{note.data.series}
+									</span>
+								)
+							}
+							{
+								!!note.data.tags?.length && (
+									<span class="flex flex-wrap gap-1 pt-1">
+										{note.data.tags.map((tag: string) => (
+											<span class="text-xs border border-weak rounded-full px-2 py-0.5 text-weak">{tag}</span>
+										))}
+									</span>
+								)
+							}
+						</section>
+
+						{/* 最近更新：最新 3 篇文记 */}
+						{
+							recentNotes.length > 0 && (
+								<section class="flex flex-col gap-1.5">
+									<h4 class="text-xs font-bold text-secondary/80">最近更新</h4>
+									<ul class="flex flex-col gap-1 text-sm">
+										{recentNotes.map(n => (
+											<li>
+												<a href={getRelativeLocaleUrl(locale, `/note/${monolocale ? n.id : n.id.split("/").slice(1).join("/")}`)} class="link text-secondary hover:text-primary truncate block">
+													{n.data.title}
+												</a>
+											</li>
+										))}
+									</ul>
+								</section>
+							)
+						}
+
+						{/* 复制本文链接 */}
+						<button id="copy-link" class="inline-flex items-center gap-1.5 text-xs text-secondary hover:text-primary border border-weak rounded-full px-2.5 py-1 self-start">
+							<Icon name="lucide--link" />
+							<span id="copy-link-text">复制本文链接</span>
+						</button>
+
+						{/* 语录：一言 API（文学/诗词/哲学），失败时保留本地备用句 */}
+						<blockquote class="border-s-2 border-secondary/50 ps-3 text-sm text-weak leading-relaxed">
+							「<span id="article-quote">余烬仍温，星光未冷</span>」
+						</blockquote>
+
+						{/* 装饰：四芒星（与 favicon 呼应） */}
+						<svg viewBox="0 0 128 128" class="w-12 h-12 opacity-15 self-start mt-auto" aria-hidden="true">
+							<path d="M64 18 L75 53 L110 64 L75 75 L64 110 L53 75 L18 64 L53 53 Z" fill="currentColor" />
+						</svg>
+					</aside>
+
+					{/* 正文列：标题 + 正文（与正文同宽，标题不再突出） */}
+					<div class="grow min-w-0 flex flex-col gap-5">
+						<header class="flex flex-col gap-4">
+							<h1 class="select-text text-3xl font-bold">{note.data.title}</h1>
+							<div class="flex flex-col gap-3 sm:flex-row *:flex *:items-center *:gap-1 *:text-[0.875rem] *:text-secondary">
+								<time datetime={note.data.timestamp.toISOString()}><Icon name="lucide--calendar" />{Time.toString(note.data.timestamp)}</time>
+								{
+									note.data.series && (
+										<span>
+											<Icon name="lucide--layers" />
+											{note.data.series}
+										</span>
+									)
+								}
+								{
+									!!note.data.tags?.length && (
+										<span>
+											<Icon name="lucide--hash" />
+											{note.data.tags?.join("; ")}
+										</span>
+									)
+								}
+								<span><Icon name="lucide--pilcrow" />{t("read.words", { count: frontmatter.words })}</span>
+							</div>
+							<hr class="border-b border-weak" />
+						</header>
+
+						<section id="markdown-content" class="markdown"><Content /></section>
+					</div>
+
 					{(note.data.toc || !!note.data.series) && <TOC headings={note.data.toc ? headings : undefined} {locale} {series} />}
 				</div>
 			</div>
@@ -97,3 +182,66 @@ const t = i18nit(locale);
 		<Position {locale} toc={note.data.toc} series={!!note.data.series} />
 	</main>
 </Base>
+
+<script>
+	// 与主题 Position 组件一致的模块脚本模式（在您站上已验证能工作）
+
+	// 阅读进度条
+	function updateProgress() {
+		const bar = document.getElementById("reading-progress") as HTMLElement | null;
+		const pctEl = document.getElementById("reading-percent") as HTMLElement | null;
+		const content = document.getElementById("markdown-content") as HTMLElement | null;
+		if (!bar || !content) return;
+
+		const doc = document.documentElement;
+		const scrollTop = window.scrollY || doc.scrollTop || 0;
+		const contentTop = content.getBoundingClientRect().top + scrollTop;
+		const total = content.offsetHeight - window.innerHeight;
+
+		let pct = 0;
+		if (total > 0) {
+			const scrolled = Math.max(0, Math.min(scrollTop - contentTop, total));
+			pct = Math.round((scrolled / total) * 100);
+		}
+		bar.style.width = pct + "%";
+		if (pctEl) pctEl.textContent = pct + "%";
+	}
+
+	window.addEventListener("scroll", updateProgress, { passive: true });
+	window.addEventListener("resize", updateProgress);
+	updateProgress();
+
+	// SPA 切换后重新计算（astr:after-swap 与主题一致）
+	document.addEventListener("astro:page-load", updateProgress);
+
+	// 从一言（Hitokoto）获取语录
+	function loadQuote() {
+		const quoteEl = document.getElementById("article-quote") as HTMLElement | null;
+		if (!quoteEl) return;
+		fetch("https://v1.hitokoto.cn/?c=d&c=i&c=k&encode=json")
+			.then(res => (res.ok ? res.json() : null))
+			.then(data => {
+				if (data?.hitokoto) quoteEl.textContent = data.hitokoto.trim();
+			})
+			.catch(() => {});
+	}
+	document.addEventListener("astro:page-load", loadQuote);
+	loadQuote();
+
+	// 复制本文链接
+	function initCopyLink() {
+		const btn = document.getElementById("copy-link") as HTMLElement | null;
+		const label = document.getElementById("copy-link-text") as HTMLElement | null;
+		if (!btn || !label) return;
+		btn.onclick = () => {
+			try {
+				navigator.clipboard.writeText(location.href).then(() => {
+					label.textContent = "已复制 ✓";
+					setTimeout(() => (label.textContent = "复制本文链接"), 2000);
+				});
+			} catch {}
+		};
+	}
+	document.addEventListener("astro:page-load", initCopyLink);
+	initCopyLink();
+</script>

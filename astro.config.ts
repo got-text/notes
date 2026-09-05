@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig, fontProviders } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
 import yaml from "@rollup/plugin-yaml";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
@@ -37,7 +38,7 @@ import ZeoSevenFonts from "./src/fonts/zeo-seven-fonts";
 
 // https://astro.build/config
 export default defineConfig({
-	site: "https://thought-lite.vercel.app",
+	site: "https://got-text.github.io", // ← 上线前把 YOUR-USERNAME 换成你的 GitHub 用户名
 	trailingSlash: "never",
 	i18n: {
 		...siteConfig.i18n,
@@ -47,43 +48,47 @@ export default defineConfig({
 		}
 	},
 	markdown: {
-		remarkPlugins: [
-			[GFM, { singleTilde: false }],
-			ins,
-			mark,
-			spoiler,
-			CJK,
-			[CJKStrikethrough, { singleTilde: false }],
-			ruby,
-			attr,
-			math,
-			gemoji,
-			footnote,
-			abbr,
-			[table, { colspanWithEmpty: true }],
-			[alerts, { typeFormat: "capitalize" }],
-			reading
-		],
-		remarkRehype: {
-			footnoteLabel: null,
-			footnoteLabelTagName: "p",
-			footnoteLabelProperties: {
-				className: ["hidden"]
+		// Astro 6.4+ 新写法：插件统一放进 unified()，消除 deprecated 警告
+		processor: unified({
+			remarkPlugins: [
+				[GFM, { singleTilde: false }],
+				ins,
+				mark,
+				spoiler,
+				CJK,
+				[CJKStrikethrough, { singleTilde: false }],
+				ruby,
+				attr,
+				math,
+				gemoji,
+				footnote,
+				abbr,
+				[table, { colspanWithEmpty: true }],
+				[alerts, { typeFormat: "capitalize" }],
+				reading
+			],
+			remarkRehype: {
+				footnoteLabel: null,
+				footnoteLabelTagName: "p",
+				footnoteLabelProperties: {
+					className: ["hidden"]
+				},
+				handlers: {
+					...tableHandler
+				}
 			},
-			handlers: {
-				...tableHandler
-			}
-		},
-		rehypePlugins: [
-			ids,
-			[anchor, { behavior: "wrap" }],
-			[links, { target: "_blank", rel: ["nofollow", "noopener", "noreferrer"] }],
-			katex,
-			figure,
-			wrapper,
-			sectionize
-		],
-		smartypants: false,
+			rehypePlugins: [
+				ids,
+				[anchor, { behavior: "wrap" }],
+				[links, { target: "_blank", rel: ["nofollow", "noopener", "noreferrer"] }],
+				katex,
+				figure,
+				wrapper,
+				sectionize
+			],
+			smartypants: false
+		}),
+		// shikiConfig 保留在顶层（它是语法高亮配置，不在弃用范围内）
 		shikiConfig: {
 			themes: {
 				light: "github-light",

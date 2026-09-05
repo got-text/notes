@@ -18,7 +18,7 @@ const route = Astro.url.pathname.slice(`/${locale === config.i18n.defaultLocale 
 
 <html lang={locale} dir={["ar", "he", "fa", "ur"].includes(locale) ? "rtl" : "ltr"}>
 	<head>
-		<title>{subtitle && `${subtitle} |`} {title}</title>
+		<title>{title}</title>
 		<meta name="description" content={description} />
 
 		<meta charset="utf-8" />
