@@ -29,12 +29,12 @@ async function doSearch(q: string) {
 	error = false;
 	try {
 		const pf = await loadPagefind();
-		const search = await pf.search(q.trim(), { baseUrl: "/notes" });
+		const search = await pf.search(q.trim());
 		const items = await Promise.all(
 			search.results.slice(0, 8).map(async (r: any) => {
 				const d = await r.data();
 				return {
-					url: d.url,
+					url: "/notes" + d.url, // 子路径前缀（手动拼接，不依赖 API 选项）
 					title: d.meta?.title || d.url,
 					excerpt: (d.excerpt || "").replace(/<[^>]+>/g, "").slice(0, 120)
 				};
