@@ -8,6 +8,18 @@ let loading = $state(false);
 let error = $state(false);
 let timer: ReturnType<typeof setTimeout>;
 
+async function loadPagefind(): Promise<any> {
+	return new Promise((resolve, reject) => {
+		const w = window as any;
+		if (w.pagefind) return resolve(w.pagefind);
+		const s = document.createElement("script");
+		s.src = "/notes/pagefind/pagefind.js";
+		s.onload = () => resolve(w.pagefind);
+		s.onerror = () => reject(new Error("pagefind load failed"));
+		document.head.appendChild(s);
+	});
+}
+
 async function doSearch(q: string) {
 	if (!q.trim()) {
 		results = [];
@@ -16,7 +28,7 @@ async function doSearch(q: string) {
 	loading = true;
 	error = false;
 	try {
-		const pf = await import("/notes/pagefind/pagefind.js");
+		const pf = await loadPagefind();
 		const search = await pf.search(q.trim());
 		const items = await Promise.all(
 			search.results.slice(0, 8).map(async (r: any) => {
