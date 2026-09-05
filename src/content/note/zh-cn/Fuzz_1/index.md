@@ -11,7 +11,7 @@ tags: [Manual, Fuzz, 代码审计, Vulnerability_Mining]
 在主要上应分为两部分，即Fuzz的主体 `AFL++` ，与客体即存在漏洞的对象(在此处应为`xpdf`)的配置
 ### AFL++
 此处学习中使用 `docker` 容器环境，如下图所示
-![](/notes/pictures/Fuzz_1/Pasted%20image%2020260616102837.png)
+![](/notes/pictures/Fuzz_1/Pasted%20image%2020260616102837.webp)
  在此处补充使用的 `docker` 命令
 ```bash
 # ==============================================================
@@ -72,7 +72,7 @@ CC=$HOME/AFLplusplus/afl-clang-fast CXX=$HOME/AFLplusplus/afl-clang-fast++ ./con
 make
 make install
 ```
-![](/notes/pictures/Fuzz_1/Pasted%20image%2020260616113743.png)
+![](/notes/pictures/Fuzz_1/Pasted%20image%2020260616113743.webp)
 
 ---
 ## **从运行命令探究Fuzz运行之关键**
@@ -153,7 +153,7 @@ afl-fuzz -i ./pdf_in -o ./pdf_out -S fuzzer_core3 -s 3333 -- ./pdftotext @@ /dev
 	`/dev/null` 则为程序输出的重定向，直接将输出抛弃可以减少算力消耗
 
 随之 `fuzz` 就真正运行起来了，以下是程序运行的截图
-![](/notes/pictures/Fuzz_1/Pasted%20image%2020260618024613.png)
+![](/notes/pictures/Fuzz_1/Pasted%20image%2020260618024613.webp)
 应关心以下部分
 #### 1. `item geometry` - `stability`（路径稳定性）
 应保证路径稳定性数值处于 95% - 100% 之间，即路径差异始终处于较小的状态。一旦稳定性低于 90%，则应检查程序中所可能存在的 ***随机数、时间戳、多线程竞争或未初始化的内存*** 而后排查并锁死程序的随机源。
@@ -165,7 +165,7 @@ afl-fuzz -i ./pdf_in -o ./pdf_out -S fuzzer_core3 -s 3333 -- ./pdftotext @@ /dev
 ---
 ### 剥瓤去核 由此可得 -o
 
-![](/notes/pictures/Fuzz_1/Pasted%20image%2020260617211359.png)
+![](/notes/pictures/Fuzz_1/Pasted%20image%2020260617211359.webp)
 接下来需要进行的就是通过 `GDB` 进行调试，以查看程序的调用栈，并尝试对漏洞进行分析
 在 `crashes` 目录下执行以下命令
 ```bash
@@ -233,7 +233,7 @@ make install
 /home/pwn/Documents/src/fuzzing_xpdf/install/bin/pdftotext \
   /home/pwn/Documents/src/fuzzing_xpdf/out/default/crashes/id:000000... /dev/null
 ```
-![](/notes/pictures/Fuzz_1/Pasted%20image%2020260619101328.png)
+![](/notes/pictures/Fuzz_1/Pasted%20image%2020260619101328.webp)
 
 #### 格其物（漏洞分析）
 ##### 1. 漏洞基本信息
@@ -246,7 +246,7 @@ make install
 
 那么在此处来说漏洞函数应该为`Parser::makeStream`
 例：`xpdf-3.02/xpdf/Parser.cc` 中的 `Parser::makeStream`
-![](/notes/pictures/Fuzz_1/Pasted%20image%2020260619111317.png)
+![](/notes/pictures/Fuzz_1/Pasted%20image%2020260619111317.webp)
 
 ###### (3)漏洞对象
 >代码层次崩溃对象和数据层面对应的造成崩溃的数据
@@ -362,7 +362,7 @@ gdb --args ../../../install/bin/pdftotext ./id:000000,sig:11,src:000784,time:291
 # backtrace  # bt 20 ——展示程序最后调用栈 bt 20 ——展示程序最初调用栈
 	
 ```
-![](/notes/pictures/Fuzz_1/Pasted%20image%2020260619141936.png)
+![](/notes/pictures/Fuzz_1/Pasted%20image%2020260619141936.webp)
 ###### 1. 因循守职 顺理成章 （源码模式）
 >对于源码模式来说，通过栈回溯可以很轻易的找到程序运行过程之中的函数，而后即可前往源文件进行对照与静态分析（应注意XXX::YYY中，XXX为类名，在源码中找到同名文件即可，YYY为方法名，进入文件后进行搜索迅速定位）
 
@@ -380,7 +380,7 @@ gdb --args ../../../install/bin/pdftotext ./id:000000,sig:11,src:000784,time:291
 
 ###### 1. 逆向回溯函数调用链
 >在宏观层面上，漏洞根因溯源遵循着由结果反推原因的逆向方向；但在微观层面上，对物理程序栈的解构则必须契合 CPU 真实的正向执行轨迹
-![](/notes/pictures/Fuzz_1/Pasted%20image%2020260620014158.png)
+![](/notes/pictures/Fuzz_1/Pasted%20image%2020260620014158.webp)
 
 已知程序崩溃在 `Parser::getObj` 那么相对应的就去查询最底层的函数调用栈，然后依次查看函数调用，在此处可以回溯至 `XRef::fetch`
 - <a href="/notes/note/zh-cn/fuzz_1#xreffetch">Fuzz_1#XRef fetch</a>
@@ -501,9 +501,9 @@ Object *Dict::lookup(char *key, Object *obj) {
 	文件解析器部分，`makeStream` 用来对流数据进行处理
 
 - `PDF` 文件内容
-![](/notes/pictures/Fuzz_1/Pasted%20image%2020260620151938.png)
+![](/notes/pictures/Fuzz_1/Pasted%20image%2020260620151938.webp)
 那么当此 `pdf` 文件被加载进程序后，在初始阶段会产生以下调用尝试解析文件。通过分析，可以看到，在 解析 `2 0 obj` 时会对 `Kids` 数组进行解析
-![](/notes/pictures/Fuzz_1/Pasted%20image%2020260620153709.png)
+![](/notes/pictures/Fuzz_1/Pasted%20image%2020260620153709.webp)
 由于`Kids` 数组未闭合导致直至文件末尾均被认为是数组中的内部成员，而后不断向后尝试解析内部对象并添加，因此调用 `Parser::getObj`
 ```cpp
   // array
@@ -516,7 +516,7 @@ Object *Dict::lookup(char *key, Object *obj) {
                            objNum, objGen));
 ```
 对于这样的一次循环来说，会产生三个 `Parser::getObj`， 分别对 `2 0 obj Kids` 数组，`3 0 obj Resources` 资源字典， 与最后的破损流对象 `5 0 obj` 进行解析,产生如下调用
-![](/notes/pictures/Fuzz_1/Pasted%20image%2020260620160606.png)
+![](/notes/pictures/Fuzz_1/Pasted%20image%2020260620160606.webp)
 其中，在`5 0 obj` 由于存在 `/Length 2 0 R` 即对 `2 0 obj` 的间接引用，使得程序不得不跳出现在执行流，创建一个新的解析器， 重复此流程，并最终导致无限递归，并最终引发程序的崩溃
 
 ####  欲烧赤壁 需借东风 （利用条件）

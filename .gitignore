@@ -41,4 +41,4 @@ wrangler.toml
 .obsidian/
 _serve/
 .vscode/
-scripts/obsidian_to_blog.py
+scripts/*
