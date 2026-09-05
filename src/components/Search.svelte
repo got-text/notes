@@ -16,7 +16,8 @@ async function doSearch(q: string) {
 	loading = true;
 	error = false;
 	try {
-		const pf = await import(/* @vite-ignore */ "/notes/pagefind/pagefind.js");
+		const pagefindPath = "/notes/pagefind/pagefind.js";
+		const pf = await import(pagefindPath); // 变量引用：绕过 Vite 静态解析，浏览器运行时加载
 		const search = await pf.search(q.trim());
 		const items = await Promise.all(
 			search.results.slice(0, 8).map(async (r: any) => {
