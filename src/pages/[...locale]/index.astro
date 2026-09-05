@@ -4,7 +4,6 @@ import { getRelativeLocaleUrl } from "astro:i18n";
 import config, { monolocale } from "$config";
 import Time from "$lib/time";
 import Base from "$layouts/Base.astro";
-import Heatmap from "$components/Heatmap.astro";
 import Logo from "$icons/site-logo.svg";
 import i18nit from "$i18n";
 
@@ -70,8 +69,11 @@ if (sections === "*" || sections.includes("jotting")) items = items.concat(jotti
 // Get the latest content for display
 const latest = items.sort((a, b) => b.data.timestamp.getTime() - a.data.timestamp.getTime())[0];
 
-// Get the latest preface for display
-const preface = prefaces[0];
+// 最新 5 条内容（note + jotting 混合，按时间倒序）
+const recent = items.slice(0, 5);
+
+// 主页序言：最新一篇 featured: true 的序文（没有 featured 时回退到最新序文）
+const preface = prefaces.find(p => p.data.featured) || prefaces[0];
 // Render preface content if available, otherwise use empty object
 const { Content } = preface ? await render(preface) : ({} as any);
 
@@ -102,7 +104,7 @@ const recentJottings = jottings.sort((a, b) => b.data.timestamp.getTime() - a.da
 		{
 			recentJottings.length > 0 && (
 				<section class="flex flex-col gap-4">
-					{/* 标题：✦ 片羽 ────────（四芒星 + 延伸横线，兼作与序文的分隔） */}
+					{/* 标题：✦ 片羽 ──────── */}
 					<h4 class="flex items-center gap-2 text-lg font-bold">
 						<svg viewBox="0 0 128 128" class="w-4 h-4 text-secondary" aria-hidden="true">
 							<path d="M64 18 L75 53 L110 64 L75 75 L64 110 L53 75 L18 64 L53 53 Z" fill="currentColor" />
@@ -113,9 +115,8 @@ const recentJottings = jottings.sort((a, b) => b.data.timestamp.getTime() - a.da
 
 					{recentJottings.map(jotting => (
 						<article class="flex flex-col gap-1 border-b border-dashed border-b-weak pb-2">
-							{/* 原始文本 + 保留换行（whitespace-pre-line），像微博正文 */}
+							{/* 原始文本 + 保留换行 */}
 							<div class="whitespace-pre-line text-[0.95rem] leading-relaxed">{jotting.body}</div>
-							{/* 时间样式与序文一致：—— 日期（签名式） */}
 							<time datetime={jotting.data.timestamp.toISOString()} class="self-end text-sm text-secondary">
 								—— {Time.toLocaleDateString(jotting.data.timestamp, locale)}
 							</time>
@@ -127,30 +128,29 @@ const recentJottings = jottings.sort((a, b) => b.data.timestamp.getTime() - a.da
 		}
 
 		{
-			latest && (
-				<footer class="flex items-center justify-center flex-wrap-reverse gap-10">
-					<Heatmap {locale} {notes} {jottings} />
+			recent.length > 0 && (
+				<section class="flex flex-col gap-4">
+					<h4 class="flex items-center gap-2 text-lg font-bold">
+						最新内容
+						<span class="grow border-t border-weak"></span>
+					</h4>
 
-					<blockquote class="grow flex flex-col">
-						<h4>{t("home.latest")}</h4>
-						<div class="flex flex-col sm:flex-row justify-between gap-1 mt-1">
-							<a href={getRelativeLocaleUrl(locale, `/${latest.type}/${monolocale ? latest.id : latest.id.split("/").slice(1).join("/")}`)} class="link">
-								{latest.data.series && `${latest.data.series} | `}
-								{latest.data.title}
+					{recent.map(item => (
+						<article class="flex flex-col gap-1 border-b border-dashed border-b-weak pb-2">
+							<a href={getRelativeLocaleUrl(locale, `/${item.type}/${monolocale ? item.id : item.id.split("/").slice(1).join("/")}`)} class="link font-semibold">
+								{item.data.series && `${item.data.series} | `}
+								{item.data.title}
 							</a>
-							<div class="flex gap-1">
-								{latest.data.tags?.map(tag => (
-									<a href={`${getRelativeLocaleUrl(locale, `/${latest.type}`)}?tag=${encodeURIComponent(tag)}`} class="text-secondary text-sm link">
-										#{tag}
-									</a>
+							<div class="flex items-center gap-2 text-sm text-secondary">
+								<span class="text-xs border border-weak rounded-full px-2 py-0.5">{item.type === "note" ? "文记" : "随笔"}</span>
+								{item.data.tags?.map(tag => (
+									<a href={`${getRelativeLocaleUrl(locale, `/${item.type}`)}?tag=${encodeURIComponent(tag)}`} class="link">#{tag}</a>
 								))}
+								<time datetime={item.data.timestamp.toISOString()} class="font-mono text-xs">{Time.toString(item.data.timestamp)}</time>
 							</div>
-						</div>
-						<time datetime={latest.data.timestamp.toISOString()} class="text-secondary font-mono text-xs">
-							{Time.toString(latest.data.timestamp)}
-						</time>
-					</blockquote>
-				</footer>
+						</article>
+					))}
+				</section>
 			)
 		}
 	</main>

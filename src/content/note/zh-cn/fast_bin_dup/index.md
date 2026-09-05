@@ -1,5 +1,5 @@
 ---
-title: fast_bin_dup
+title: How2heap_fast_bin_dup
 timestamp: 2026-07-22 16:26:00+08:00
 toc: true
 tags: [PWN, PWN/Heap, PWN/Heap/fast_bin, Manual]
@@ -712,7 +712,7 @@ itr()
 ---
 ---
 ## 📑总结与思考
-本质上是对 `heap` 的知识点了解不深的，是应该努力学习的，是应该知耻而后勇的。因此，希望之后能继续写出这样子的文章，继续努力，在成为大黑客的路上继续迈步。
+很感慨。这是第一篇，希望最后一篇来的更晚一点
 [Run - Snow Patrol](https://www.bilibili.com/video/BV1WV4y1m7Fd/?spm_id_from=333.1007.top_right_bar_window_custom_collection.content.click)
 
 ---
