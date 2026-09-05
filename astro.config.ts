@@ -38,7 +38,8 @@ import ZeoSevenFonts from "./src/fonts/zeo-seven-fonts";
 
 // https://astro.build/config
 export default defineConfig({
-	site: "https://got-text.github.io", // ← 上线前把 YOUR-USERNAME 换成你的 GitHub 用户名
+	site: "https://got-text.github.io",
+	base: "/notes/", // 子路径部署（门厅将来占根域名）
 	trailingSlash: "never",
 	i18n: {
 		...siteConfig.i18n,
