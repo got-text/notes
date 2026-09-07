@@ -77,8 +77,13 @@ const preface = prefaces.find(p => p.data.featured) || prefaces[0];
 // Render preface content if available, otherwise use empty object
 const { Content } = preface ? await render(preface) : ({} as any);
 
-// 片羽：最新 5 条随笔（保留换行的原始文本）
-const recentJottings = jottings.sort((a, b) => b.data.timestamp.getTime() - a.data.timestamp.getTime()).slice(0, 5);
+// 片羽：只显示最新 1 条随笔（Markdown 渲染，与详情页一致）
+const recentJottings = await Promise.all(
+	jottings
+		.sort((a, b) => b.data.timestamp.getTime() - a.data.timestamp.getTime())
+		.slice(0, 1)
+		.map(async jotting => ({ ...jotting, Content: (await render(jotting)).Content }))
+);
 ---
 
 <Base title={t("navigation.home")} {locale}>
@@ -97,32 +102,6 @@ const recentJottings = jottings.sort((a, b) => b.data.timestamp.getTime() - a.da
 					<a href={getRelativeLocaleUrl(locale, "/preface")} class="self-end my-2 text-sm text-secondary">
 						—— {Time.toLocaleDateString(preface.data.timestamp, locale)}
 					</a>
-				</section>
-			)
-		}
-
-		{
-			recentJottings.length > 0 && (
-				<section class="flex flex-col gap-4">
-					{/* 标题：✦ 片羽 ──────── */}
-					<h4 class="flex items-center gap-2 text-lg font-bold">
-						<svg viewBox="0 0 128 128" class="w-4 h-4 text-secondary" aria-hidden="true">
-							<path d="M64 18 L75 53 L110 64 L75 75 L64 110 L53 75 L18 64 L53 53 Z" fill="currentColor" />
-						</svg>
-						片羽
-						<span class="grow border-t border-weak"></span>
-					</h4>
-
-					{recentJottings.map(jotting => (
-						<article class="flex flex-col gap-1 border-b border-dashed border-b-weak pb-2">
-							{/* 原始文本 + 保留换行 */}
-							<div class="whitespace-pre-line text-[0.95rem] leading-relaxed">{jotting.body}</div>
-							<time datetime={jotting.data.timestamp.toISOString()} class="self-end text-sm text-secondary">
-								—— {Time.toLocaleDateString(jotting.data.timestamp, locale)}
-							</time>
-						</article>
-					))}
-					<a href={getRelativeLocaleUrl(locale, "/jotting")} class="text-sm text-secondary self-end">更多随笔 →</a>
 				</section>
 			)
 		}
@@ -150,6 +129,31 @@ const recentJottings = jottings.sort((a, b) => b.data.timestamp.getTime() - a.da
 							</div>
 						</article>
 					))}
+				</section>
+			)
+		}
+
+		{
+			recentJottings.length > 0 && (
+				<section class="flex flex-col gap-4">
+					{/* 标题：✦ 片羽 ──────── */}
+					<h4 class="flex items-center gap-2 text-lg font-bold">
+						<svg viewBox="0 0 128 128" class="w-4 h-4 text-secondary" aria-hidden="true">
+							<path d="M64 18 L75 53 L110 64 L75 75 L64 110 L53 75 L18 64 L53 53 Z" fill="currentColor" />
+						</svg>
+						片羽
+						<span class="grow border-t border-weak"></span>
+					</h4>
+
+					{recentJottings.map(jotting => (
+						<article class="flex flex-col gap-1 border-b border-dashed border-b-weak pb-2">
+							<div class="markdown text-[0.95rem]"><jotting.Content /></div>
+							<time datetime={jotting.data.timestamp.toISOString()} class="self-end text-sm text-secondary">
+								—— {Time.toLocaleDateString(jotting.data.timestamp, locale)}
+							</time>
+						</article>
+					))}
+					<a href={getRelativeLocaleUrl(locale, "/jotting")} class="text-sm text-secondary self-end">更多随笔 →</a>
 				</section>
 			)
 		}
