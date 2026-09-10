@@ -56,26 +56,14 @@ const jottings = await getCollection("jotting", jotting => {
 	return !jotting.data.draft && localed;
 });
 
-// Combine contents
-let items: { id: string; type?: string; data: { timestamp: Date; tags?: string[]; [key: string]: any } }[] = [];
-
-// Determine which sections to include
-const sections = config.latest || "*";
-
-// Add contents based on config
-if (sections === "*" || sections.includes("note")) items = items.concat(notes);
-if (sections === "*" || sections.includes("jotting")) items = items.concat(jottings);
-
-// Get the latest content for display
-const latest = items.sort((a, b) => b.data.timestamp.getTime() - a.data.timestamp.getTime())[0];
-
-// 最新 5 条内容（note + jotting 混合，按时间倒序）
-const recent = items.slice(0, 5);
-
 // 主页序言：最新一篇 featured: true 的序文（没有 featured 时回退到最新序文）
 const preface = prefaces.find(p => p.data.featured) || prefaces[0];
 // Render preface content if available, otherwise use empty object
 const { Content } = preface ? await render(preface) : ({} as any);
+
+// 最新内容：文记与随笔分开，各取最新 3 条
+const recentNotes = notes.sort((a, b) => b.data.timestamp.getTime() - a.data.timestamp.getTime()).slice(0, 3);
+const recentJotList = jottings.sort((a, b) => b.data.timestamp.getTime() - a.data.timestamp.getTime()).slice(0, 3);
 
 // 片羽：只显示最新 1 条随笔（Markdown 渲染，与详情页一致）
 const recentJottings = await Promise.all(
@@ -107,28 +95,59 @@ const recentJottings = await Promise.all(
 		}
 
 		{
-			recent.length > 0 && (
+			(recentNotes.length > 0 || recentJotList.length > 0) && (
 				<section class="flex flex-col gap-4">
 					<h4 class="flex items-center gap-2 text-lg font-bold">
 						最新内容
 						<span class="grow border-t border-weak"></span>
 					</h4>
 
-					{recent.map(item => (
-						<article class="flex flex-col gap-1 border-b border-dashed border-b-weak pb-2">
-							<a href={getRelativeLocaleUrl(locale, `/${item.type}/${monolocale ? item.id : item.id.split("/").slice(1).join("/")}`)} class="link font-semibold">
-								{item.data.series && `${item.data.series} | `}
-								{item.data.title}
-							</a>
-							<div class="flex items-center gap-2 text-sm text-secondary">
-								<span class="text-xs border border-weak rounded-full px-2 py-0.5">{item.type === "note" ? "文记" : "随笔"}</span>
-								{item.data.tags?.map(tag => (
-									<a href={`${getRelativeLocaleUrl(locale, `/${item.type}`)}?tag=${encodeURIComponent(tag)}`} class="link">#{tag}</a>
-								))}
-								<time datetime={item.data.timestamp.toISOString()} class="font-mono text-xs">{Time.toString(item.data.timestamp)}</time>
-							</div>
-						</article>
-					))}
+					{/* 左右两列：文记 | 随笔（中间虚线分割） */}
+					<div class="flex flex-col sm:flex-row gap-6">
+						<div class="sm:w-1/2 flex flex-col gap-2 sm:pe-6 sm:border-e sm:border-dashed sm:border-weak">
+							<h5 class="text-sm font-bold text-secondary">文记</h5>
+							{
+								recentNotes.length > 0 ? (
+									recentNotes.map(item => (
+										<article class="flex flex-col gap-0.5">
+											<a href={getRelativeLocaleUrl(locale, `/${item.type}/${monolocale ? item.id : item.id.split("/").slice(1).join("/")}`)} class="link font-semibold">
+												{item.data.series && `${item.data.series} | `}
+												{item.data.title}
+											</a>
+											<div class="flex items-center gap-2 text-sm text-secondary">
+												{item.data.tags?.map(tag => (
+													<a href={`${getRelativeLocaleUrl(locale, `/${item.type}`)}?tag=${encodeURIComponent(tag)}`} class="link">#{tag}</a>
+												))}
+												<time datetime={item.data.timestamp.toISOString()} class="font-mono text-xs">{Time.toString(item.data.timestamp)}</time>
+											</div>
+										</article>
+									))
+								) : (
+									<span class="text-sm text-secondary">暂无</span>
+								)
+							}
+						</div>
+
+						<div class="sm:w-1/2 flex flex-col gap-2 sm:ps-6">
+							<h5 class="text-sm font-bold text-secondary">随笔</h5>
+							{
+								recentJotList.length > 0 ? (
+									recentJotList.map(item => (
+										<article class="flex flex-col gap-0.5">
+											<a href={getRelativeLocaleUrl(locale, `/${item.type}/${monolocale ? item.id : item.id.split("/").slice(1).join("/")}`)} class="link font-semibold">
+												{item.data.title}
+											</a>
+											<div class="flex items-center gap-2 text-sm text-secondary">
+												<time datetime={item.data.timestamp.toISOString()} class="font-mono text-xs">{Time.toString(item.data.timestamp)}</time>
+											</div>
+										</article>
+									))
+								) : (
+									<span class="text-sm text-secondary">暂无</span>
+								)
+							}
+						</div>
+					</div>
 				</section>
 			)
 		}
