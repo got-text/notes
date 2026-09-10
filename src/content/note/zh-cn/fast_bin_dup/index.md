@@ -672,10 +672,11 @@ mode: full
 
 ---
 #### 分析与利用
-![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260728103449.webp)
-此处我们直接通过源码对程序进行分析，可以看到程序的数据结构是非常简单的，都只有一个数据块。与此同时需要注意的是，三种大小的 `chunk` 都只能创建一次，这就对漏洞的利用带来了很大的挑战，这也正是我们在此处使用 `fast_bin_dup_consolidate` 的原因![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260728110630.webp)
+
+此处我们直接通过源码对程序进行分析，可以看到程序的数据结构是非常简单的，都只有一个数据块。与此同时需要注意的是，三种大小的 `chunk` 都只能创建一次，这就对漏洞的利用带来了很大的挑战，这也正是我们在此处使用 `fast_bin_dup_consolidate` 的原因![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260728103449.webp)
+
 很明显的是，题目在此处是存在着 `UAF` 漏洞的，并没有将对应的指针置为 `nullptr` ，另外，由于在 `free` 前没有做任何的检查，这就使得我们可以实现 `chunk` 的 `dup`
-而为了实现目标，仍然是需要做 `libc` 基址的泄露
+而为了实现目标，仍然是需要做 `libc` 基址的泄露![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260728110630.webp)
 通过分析，能够很容易的发现，题目并没有给输出函数，因此也就没有常规的进行泄露的手段。对于大部分题目而言，应当是开启 `FULL_RELRO` 的，就只能够通过 `_IO_FILE` 去泄露。但很幸运，此题并没有，我们就可以操作 `got` 表，通过将 `free` 改为 `puts` 即可实现用户区内容的泄露。而后仍然是修改 `free` 为 `system` 函数，即可实现漏洞的利用
 
 ---
@@ -755,7 +756,7 @@ mode: full
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729181634.webp)
 ```
 
-泄露 `libc` 基址之后，即可获得 `system` 地址，通过同样的方法，即可获得 `shell`
+泄露 `libc` 基址之后，即可获得 `system` 地址，通过同样的方法，获得 `shell`
 ```python
 sys = lib_base + lib.sym["system"]
 edit(1, p64(sys))
