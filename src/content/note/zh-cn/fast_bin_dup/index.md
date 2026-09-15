@@ -11,17 +11,17 @@ tags: [PWN, PWN/Heap, PWN/Heap/fast_bin, Manual]
 ---
 - 描述：通过滥用 `fastbin` 空闲链表，`malloc` 返回一个几乎任意的指针
 - 功能：
-	>近似地实现任意地址分配，进而实现任意地址读写
+	>近似地实现任意地址分配
 - 版本要求：`glibc` - `< 2.43` ：`fast_bins` 存在，可用
 	>`glibc` - `>= 2.23` ：取出 `chunk` 的 `size` 须与请求落在同一 `fast_bin_index`
 	>`glibc` - `>= 2.26` ：需填满 `tcache` ( `7` 次 `free` ) ^6b34a9
 - 适用场景：
-	>需任意地址写
+	>需要获得任意地址分配能力
+- 利用条件：
 	>存在 `double-free` 或 `UAF`，能 `free` 两次同一个 `chunk`
-- 期望：
-	>成功泄露 `libc` 基址
-	>能够成功泄露 `heap` 基址
 	>目标地址附近存在合法的 `fast_bin_size`
+- 期望：
+	>能够进而实现任意地址读写，通过修改 `.got` 表或者 `__malloc_hook` 、`__free_hook` 、 `__realloc_hook` ，实现最终攻击
 - 注意：
     >无
 - 
@@ -130,7 +130,7 @@ mode: full
 	>由改写上述三个函数，转到了利用 `GOT (Partial RELRO)`、 `FSOP` 、 `tcache_perthread_struct` 、 `栈 ROP` 等手段
 - 
 ---
-题目演示：暂无
+### 题目演示：暂无
 
 ---
 ---
@@ -143,16 +143,13 @@ mode: full
 	>`glibc` - `>= 2.23` ：取出 `chunk` 的 `size` 须与请求落在同一 `fast_bin_index`
 	>`glibc` - `>= 2.26` ：需填满 `tcache` ( `7` 次 `free` )
 - 适用场景：
-	>题目未开启 `PIE` 保护
-	>题目无 `got` 表
-	>存在 `FULL_RELRO` 保护导致 `got` 表不可写
-	>`glibc` 版本高导致无法使用 `__malloc_hook` 函数
+	>存在 `FULL_RELRO` 保护导致 `got` 表不可写，或无法使用 `__malloc_hook` 、`__free_hook` 、 `__realloc_hook` 函数 
 - 利用条件：
 	>存在 `double-free` 或 `UAF`，能 `free` 两次同一个 `chunk`
+	>目标地址附近存在合法的 `fast_bin_size`
 	>能成功泄露栈地址
 - 期望：
 	>能够对 `main` 或长期存在的栈帧进行攻击
-	>目标地址附近存在合法的 `fast_bin_size`
 - 注意：
     >无
 - 
@@ -442,8 +439,7 @@ mode: full
 	>`glibc` - `>= 2.23` ：取出 `chunk` 的 `size` 须与请求落在同一 `fast_bin_index`
 	>`glibc` - `>= 2.26` ：需填满 `tcache` ( `7` 次 `free` )
 - 适用场景：
-	>仅存在 `fast_bin` 的 `UAF` ，同时需要泄露 `libc` 基址
-	>需要创立 `chunk` 的堆叠
+	>需要实现 `chunk` 的堆叠
 - 利用条件：
 	>至少存在 一个 `fast_sized_chunk` 的 `UAF` 
 	>能够创建 `large_sized_chunk` 
