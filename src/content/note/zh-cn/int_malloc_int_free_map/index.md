@@ -8,9 +8,9 @@ tags: [PWN/Heap, PWN/Heap/malloc_free, AI]
 
 ## 1. `_int_malloc`（取块流程）
 
-- [x] ⓪ 入口：计算 `nb`
+- [ ] ⓪ 入口：计算 `nb`
 	> `request2size` 把请求大小对齐成 chunk 大小；2.26+ 起先看一眼 `tcache`
-- [x] ① `fast_bin` 站
+- [ ] ① `fast_bin` 站
 	> 请求落在 `fast_bin` 范围且对应 `fast_bin` 非空时，从单链头部取块（`LIFO`）；取出前校验块仍在正确的 size 档，否则报 `malloc(): memory corruption (fast)`。
 - [ ] ② `small_bin` 站
 	> 从对应 `small_bin` 的链尾取块（"插头取尾"）；摘除前校验 `bck->fd == victim`（`malloc(): smallbin double linked list corrupted`）；取出后设置后邻块的 `inuse` 位
@@ -18,21 +18,21 @@ tags: [PWN/Heap, PWN/Heap/malloc_free, AI]
 	> `large` 请求发现 `fast_bin` 非空时，先把 fastbin 归并一遍，再进入后续站点。
 - [ ] ④ `unsorted` 循环（核心）
 	> 从 `unsorted` 链尾逐个取块：`exact` 直接返回、可切割则切（`last_remainder`）、否则分发进 `small` / `large_bin`
-	- [x] 4.1 取出块合法性
+	- [ ] 4.1 取出块合法性
 		> 块的 `size` 必须落在 `(2*SIZE_SZ, system_mem]` 内，否则报 `malloc(): memory corruption`。
-	- [x] 4.2 解链维护
+	- [ ] 4.2 解链维护
 		> 摘下 victim 的摘除两针：`头->bk = bck; bck->fd = 头`
-	- [x] 4.3 exact fit
+	- [ ] 4.3 exact fit
 		> `size == nb` 直接返回（最快出口）。
 	- [ ] 4.4 切割 + `last_remainder`
 		> 四条件成立时切割（`small` 请求 / 链上唯一块 / 是 `last_remainder` / 剩余 > `MINSIZE`）；余块回插成为新的 `last_remainder`
-	- [x] 4.5 `small` 分发
+	- [ ] 4.5 `small` 分发
 		> 块进 smallbin：四针插到"头端"。
-	- [x] 4.6 `large` 分发插入
+	- [ ] 4.6 `large` 分发插入
 		> 空 → 短路 → 跳组 → 停点 → 收尾四针（详见《`large_bin_insert`》）。
-- [x] ⑤ 本 `bin·large` 取出
+- [ ] ⑤ 本 `bin·large` 取出
 	> 沿 `nextsize` 环从最小组首向大找"第一个 ≥ `nb`"；避组首取第二块；unlink 时同步校验/修复环。
-- [x] ⑥ 更大 `bin·large` 取出
+- [ ] ⑥ 更大 `bin·large` 取出
 	> 用 `binmap` 位图跳过空 `bin`，取最小非空更大 `bin` 的链尾（`best-fit`）。
 - [ ] ⑦ `use_top`
 	> 各 `bin` 都不行时从 `top` 切割；`top` 被视为"最不贴合的候选"。
@@ -43,17 +43,17 @@ tags: [PWN/Heap, PWN/Heap/malloc_free, AI]
 
 ## 2. `_int_free`（还块流程）
 
-- [x] ⓪ 入口检查
+- [ ] ⓪ 入口检查
 	> 指针越界/未对齐报 `free(): invalid pointer`；size 非法的报 `free(): invalid size`。
-- [x] ① `fast_bin` 分支（`size` ≤ `max_fast`）
+- [ ] ① `fast_bin` 分支（`size` ≤ `max_fast`）
 	> 检查 `next` 块 `size`（`invalid next size (fast)`）→ `double_free` 检查（`(fast_top)`）→ 插到链头 → 直接返回，不进 `unsorted`。
-- [x] ② 轻量测试组（常规路径入口）
+- [ ] ② 轻量测试组（常规路径入口）
 	> `free_top` 本身 → `(top)`；`next` 越过 `top` → `(out)`；`next` 已空闲 → `(!prev)`；`next_size` 非法 → `invalid_next_size (normal)`。
-- [x] ③ `consolidate backward`
+- [ ] ③ `consolidate backward`
 	> `P` 位为 `0` 时与前块合并：读 `prev_size`、`size +=`、`unlink` 前块；`2.26+` 校验 `corrupted size vs. prev_size`。
 - [ ] ④ `consolidate forward` / `top` 合并
 	> `next` 空闲则 `unlink` 并合并；`next` 在用则清其 `P` 位；`next` == `top` 时并入 top。
-- [x] ⑤ 放置 `unsorted`
+- [ ] ⑤ 放置 `unsorted`
 	> 插入 `unsorted` 头端（四针）；插前校验 `corrupted unsorted chunks`；`large` 块顺手清空 `nextsize` 字段。
 - [ ] ⑥ 后置
 	> 大块（`≥64KB`）`free` 会触发一次 `consolidate`；结束后随 `arena` 收尾。
