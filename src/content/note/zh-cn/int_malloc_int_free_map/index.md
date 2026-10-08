@@ -2,7 +2,7 @@
 title: int_malloc_int_free_map
 timestamp: 2026-09-15 17:02:00+08:00
 toc: true
-tags: [PWN/Heap, AI, PWN/Heap/malloc_free]
+tags: [PWN/Heap, PWN/Heap/malloc_free, AI]
 ---
 # 研究地图：`_int_malloc` × `_int_free`
 

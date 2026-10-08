@@ -2,7 +2,7 @@
 title: large_bin_flow
 timestamp: 2026-09-16 15:56:00+08:00
 toc: true
-tags: [PWN/Heap, PWN/Heap/large_bin]
+tags: [PWN/Heap, PWN/Heap/large_bin, AI]
 ---
 
 # Large Bin 全解：插入 与 取出
