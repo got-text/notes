@@ -2,7 +2,7 @@
 title: overlapping_chunks_family
 timestamp: 2026-10-09 23:52:00+08:00
 toc: true
-tags: [PWN/Heap, PWN/Heap/overlapping，AI_Editing]
+tags: [PWN/Heap, PWN/Heap/overlapping, AI_Editing]
 ---
 
 # overlapping 系列总结（`size` 篡改方向）
